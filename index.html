@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Station Details Management | TI(M)/BDC</title>
+  <style>
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; font-family:'Segoe UI',Roboto,sans-serif; }
+    .fullscreen-iframe { display:block; width:100vw; height:100vh; border:none; }
+    .overlay {
+      position:fixed; inset:0; background:#12325b; color:#fff;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:18px; padding:24px; text-align:center; z-index:10;
+    }
+    .overlay h1 { margin:0; font-size:20px; }
+    .overlay p  { margin:0; max-width:480px; opacity:.85; font-size:14px; }
+    .overlay a {
+      display:inline-block; background:#e08c0f; color:#3a2600;
+      padding:12px 26px; border-radius:6px;
+      text-decoration:none; font-weight:700; font-size:14px;
+    }
+    .spinner {
+      width:34px; height:34px; border-radius:50%;
+      border:3px solid rgba(255,255,255,.25);
+      border-top-color:#e08c0f;
+      animation:spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="loading">
+  <div class="spinner"></div>
+  <p>Connecting to Station Details…</p>
+</div>
+
+<div class="overlay hidden" id="authNeeded">
+  <h1>🔐 Google sign-in required</h1>
+  <p>Please sign in to your Google account to continue.</p>
+  <a id="loginLink" href="#" target="_blank" rel="noopener">Sign in →</a>
+</div>
+
+<iframe
+  id="appFrame"
+  class="fullscreen-iframe hidden"
+  src="https://script.google.com/macros/s/AKfycbz1ALKyjmdW8DXG2bOIQtSmRsv82A7NmTTC-CObbU-7JrJyW2l-j7cOn0fdJFcZzH6E2Q/exec">
+</iframe>
+
+<script>
+(function () {
+  var APP_URL = "https://script.google.com/macros/s/AKfycbz1ALKyjmdW8DXG2bOIQtSmRsv82A7NmTTC-CObbU-7JrJyW2l-j7cOn0fdJFcZzH6E2Q/exec";
+  var loading = document.getElementById('loading');
+  var auth    = document.getElementById('authNeeded');
+  var iframe  = document.getElementById('appFrame');
+  document.getElementById('loginLink').href = APP_URL;
+
+  var resolved = false;
+
+  // JSONP callback invoked if the user IS authorized
+  window.authSuccess = function (data) {
+    if (resolved) return;
+    resolved = true;
+    loading.classList.add('hidden');
+    auth.classList.add('hidden');
+    iframe.classList.remove('hidden');
+  };
+
+  // Load the JSONP probe
+  var s = document.createElement('script');
+  s.src = APP_URL + '?jsonpCallback=authSuccess';
+  s.onerror = function () {
+    if (resolved) return;
+    resolved = true;
+    loading.classList.add('hidden');
+    auth.classList.remove('hidden');
+  };
+  document.head.appendChild(s);
+
+  // Fallback
+  setTimeout(function () {
+    if (!resolved) {
+      resolved = true;
+      loading.classList.add('hidden');
+      auth.classList.remove('hidden');
+    }
+  }, 4000);
+})();
+</script>
+
+</body>
+</html>
