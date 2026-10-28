@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>Station Details Management | TI(M)/BDC</title>
 
   <!-- Inline SVG favicon (no extra file needed) -->
@@ -15,28 +15,123 @@
 
   <!-- Theme colour for mobile browser chrome -->
   <meta name="theme-color" content="#0b1f3a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
     html, body {
       margin: 0;
       padding: 0;
+      width: 100%;
       height: 100%;
+      height: 100dvh;
       overflow: hidden;
       background: #0b1f3a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    .iframe-shell {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+      background: #0b1f3a;
+      display: flex;
+      flex-direction: column;
     }
     .fullscreen-iframe {
       display: block;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
+      flex: 1 1 auto;
       border: none;
+      background: #f3f5f9;
     }
   </style>
 </head>
 <body>
-  <iframe
-    class="fullscreen-iframe"
-    src="https://script.google.com/macros/s/AKfycbyTv6iIo3NtQgx61xEzE9mEh7vqe7zVIGq9G2GZL-6q43Cj7CUijolu5H8TrQ_8bk40/exec"
-    allow="fullscreen">
-  </iframe>
+  <div class="iframe-shell">
+    <iframe
+      id="appFrame"
+      class="fullscreen-iframe"
+      src="https://script.google.com/macros/s/AKfycbxfnrXQIm1mLWnKFAeh2-OsvuNqOuZBjMpwhjXPvJyeyQGFMWj_QWhgwnF5Kw9cBBHCmQ/exec"
+      allow="fullscreen; clipboard-write"
+      title="Station Details Management | TI(M)/BDC">
+    </iframe>
+  </div>
+
+  <script>
+    (function () {
+      var BASE_EXEC_URL = "https://script.google.com/macros/s/AKfycbxfnrXQIm1mLWnKFAeh2-OsvuNqOuZBjMpwhjXPvJyeyQGFMWj_QWhgwnF5Kw9cBBHCmQ/exec";
+      var TOKEN_KEY = "sd_token_v21";
+      var frame = document.getElementById("appFrame");
+
+      // Forward any ?station=... query parameter from GitHub Pages URL to the Apps Script web app
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var station = params.get("station");
+        if (station && frame) {
+          frame.src = BASE_EXEC_URL + "?station=" + encodeURIComponent(station.trim().toUpperCase());
+        }
+      } catch (e) {}
+
+      function safeGetToken() {
+        try { return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || ""; }
+        catch (e) { return ""; }
+      }
+      function safeSetToken(token) {
+        try {
+          if (token) {
+            sessionStorage.setItem(TOKEN_KEY, token);
+            localStorage.setItem(TOKEN_KEY, token);
+          } else {
+            sessionStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(TOKEN_KEY);
+          }
+        } catch (e) {}
+      }
+
+      // Bridge session & logout messages between GitHub Pages parent and Apps Script iframe
+      window.addEventListener("message", function (event) {
+        var msg = event && event.data;
+        if (!msg || typeof msg !== "object" || !msg.type) return;
+
+        if (msg.type === "SDM_SET_TOKEN") {
+          safeSetToken(String(msg.token || ""));
+        } else if (msg.type === "SDM_CLEAR_TOKEN" || msg.type === "SDM_LOGOUT") {
+          safeSetToken("");
+          if (msg.reloadFrame && frame) {
+            var sep = BASE_EXEC_URL.indexOf("?") === -1 ? "?" : "&";
+            frame.src = BASE_EXEC_URL + sep + "_logout=" + Date.now();
+          }
+        } else if (msg.type === "SDM_GET_TOKEN") {
+          var saved = safeGetToken();
+          if (frame && frame.contentWindow) {
+            frame.contentWindow.postMessage({ type: "SDM_TOKEN_RESPONSE", token: saved }, "*");
+          }
+        }
+      });
+
+      // Dynamic viewport height fallback for older mobile browsers without dvh support
+      function syncViewportHeight() {
+        if (!window.CSS || !CSS.supports || !CSS.supports("height", "100dvh")) {
+          var vh = window.innerHeight;
+          document.documentElement.style.height = vh + "px";
+          document.body.style.height = vh + "px";
+        }
+      }
+      window.addEventListener("resize", syncViewportHeight);
+      window.addEventListener("orientationchange", syncViewportHeight);
+      syncViewportHeight();
+    })();
+  </script>
 </body>
 </html>
