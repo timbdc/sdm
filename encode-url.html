@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDM+ Bridge — Apps Script URL Encoder</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
+    .box { max-width: 640px; margin: 20px auto; background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 22px; }
+    h1 { margin: 0 0 6px; font-size: 19px; color: #fbbf24; }
+    p { margin: 0 0 14px; font-size: 13.5px; color: #cbd5e1; line-height: 1.5; }
+    label { display: block; font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; }
+    input, textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; font-size: 13.5px; font-family: monospace; }
+    textarea { min-height: 130px; margin-top: 8px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    button { padding: 10px 16px; border-radius: 10px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .pri { background: #2563eb; color: #fff; }
+    .sec { background: #334155; color: #f8fafc; }
+    .ok { background: #16a34a; color: #fff; }
+    .msg { margin-top: 10px; font-size: 12.5px; color: #4ade80; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>SDM+ GitHub Pages Bridge — URL Encoder</h1>
+    <p>Run this file locally on your PC or phone. Paste your deployed Google Apps Script <code>/exec</code> URL below to generate an encoded <code>config.js</code> file (do not upload this encoder tool to GitHub).</p>
+    <label for="urlInp">Deployed Apps Script Web App URL</label>
+    <input type="url" id="urlInp" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+    <div class="row">
+      <button type="button" class="pri" id="btnGen">Generate Encoded config.js</button>
+      <button type="button" class="sec" id="btnCopy">Copy Output</button>
+      <button type="button" class="ok" id="btnDl">Download config.js</button>
+    </div>
+    <textarea id="outBox" readonly placeholder="Encoded config.js will appear here..."></textarea>
+    <div id="statusMsg" class="msg"></div>
+  </div>
+  <script>
+    function randKey(len) {
+      var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+      var arr = new Uint8Array(len);
+      crypto.getRandomValues(arr);
+      var s = "";
+      for (var i = 0; i < len; i++) s += chars[arr[i] % chars.length];
+      return s;
+    }
+    function xorBase64(text, key) {
+      var out = "";
+      for (var i = 0; i < text.length; i++) {
+        out += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return btoa(out);
+    }
+    document.getElementById("btnGen").addEventListener("click", function () {
+      var url = document.getElementById("urlInp").value.trim();
+      var st = document.getElementById("statusMsg");
+      if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(\?.*)?$/i.test(url)) {
+        st.style.color = "#f87171";
+        st.textContent = "Please enter a valid Apps Script Web App URL ending in /exec.";
+        return;
+      }
+      var k = randKey(24);
+      var p = xorBase64(url, k);
+      var code = "window.__SDM_CFG__ = {\n  k: " + JSON.stringify(k) + ",\n  p: " + JSON.stringify(p) + "\n};\n";
+      document.getElementById("outBox").value = code;
+      st.style.color = "#4ade80";
+      st.textContent = "Encoded config.js generated! Replace config.js in your GitHub repo and push.";
+    });
+    document.getElementById("btnCopy").addEventListener("click", function () {
+      var v = document.getElementById("outBox").value;
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(function () {
+        document.getElementById("statusMsg").textContent = "Copied config.js to clipboard.";
+      });
+    });
+    document.getElementById("btnDl").addEventListener("click", function () {
+      var v = document.getElementById("outBox").value;
+      if (!v) return;
+      var blob = new Blob([v], { type: "application/javascript" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "config.js";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  </script>
+</body>
+</html>

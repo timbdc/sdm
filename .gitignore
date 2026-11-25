@@ -1,0 +1,11 @@
+# Secrets & Runtime Config (Protected by CHORUS Deploy Studio)
+.env
+.env.*
+!.env.example
+data/runtime_config.json
+runtime_config.json
+__pycache__/
+*.py[cod]
+.pytest_cache/
+data/forged_tools/jobs/job_*.json
+data/forged_tools/run/
