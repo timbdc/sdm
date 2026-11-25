@@ -9,6 +9,6 @@
  * Your plain Apps Script URL never appears in index.html or this file.
  */
 window.__SDM_CFG__ = {
-  k: "C*^mM6u5LH3rzyLRTS^#H452",
-  p: "K14qHT4MWho/K0EbCg1iNTs8OU8tGlZdLgUzDC5EGkZjOxwzMR81MTYrBGYXTldCJ2gTWnl5DWEBfgMGLh0oEzIYE0R5TkYLcgcxCz5mQEQDOkk7KRobBSInMxIPRWxoNB0MO2B5BGcAKx5dHwEpMQ=="
+  k: "MT4e#7*vB9cQrf8%r9NKzc$j",
+  p: "JSBAFVANBVkxWhE4AhIWQh1WKScfTUcFIHtZBEBFRQVtSkwQOQBBRhBAFykYF0AmfGdlLhZvHQYRcCEUGyx/SChTICQVFElcLCBgLnpfaTB0fDkoNypMaANjKiBKNl4/IQIGKntgUzUWfzB+Fx5dRg=="
 };
