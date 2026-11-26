@@ -345,13 +345,13 @@
           if (!appVerifiedAlive) {
             showMaintenance("Deployment link archived, invalid, or under maintenance");
           }
-        }, 5500);
+        }, 9000);
       });
       setTimeout(function () {
         if (!appVerifiedAlive) {
           showMaintenance("Service is taking too long or under maintenance");
         }
-      }, 14000);
+      }, 20000);
 
       var btnMaintRetry = document.getElementById("btnMaintRetry");
       if (btnMaintRetry) {
@@ -393,11 +393,11 @@
             frame.src = execUrl + sep + "_logout=" + Date.now();
           }
         } else if (msg.type === "SDM_GET_TOKEN") {
-          if (frame.contentWindow) frame.contentWindow.postMessage({ type: "SDM_TOKEN_RESPONSE", token: safeGet(TOKEN_KEY) }, "*");
+          var tokTarget = event.source || frame.contentWindow; if (tokTarget) tokTarget.postMessage({ type: "SDM_TOKEN_RESPONSE", token: safeGet(TOKEN_KEY) }, "*");
         } else if (msg.type === "SDM_SAVE_CREDS") {
           safeSet(CREDS_KEY, msg.payload ? JSON.stringify(msg.payload) : "");
         } else if (msg.type === "SDM_GET_CREDS") {
-          if (frame.contentWindow) frame.contentWindow.postMessage({ type: "SDM_CREDS_RESPONSE", payload: safeGet(CREDS_KEY) }, "*");
+          var credTarget = event.source || frame.contentWindow; if (credTarget) credTarget.postMessage({ type: "SDM_CREDS_RESPONSE", payload: safeGet(CREDS_KEY) }, "*");
         } else if (msg.type === "SDM_DOWNLOAD_URL" && msg.url) {
           var a = document.createElement("a");
           a.href = String(msg.url);
