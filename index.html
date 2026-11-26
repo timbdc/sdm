@@ -162,6 +162,47 @@
     }
     .setup-card h2 { margin: 0 0 8px; font-size: 17px; color: #0f294a; }
     .setup-card code { background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+  
+    /* v7.0 SDM+-Matched Maintenance / Unavailable Deployment Guard */
+    .maint-screen {
+      position: fixed; inset: 0; z-index: 65;
+      display: none; align-items: center; justify-content: center; padding: 22px;
+      background:
+        radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 52%),
+        radial-gradient(circle at bottom left, rgba(29, 78, 216, 0.24), transparent 55%),
+        linear-gradient(160deg, #0b1f3a 0%, #071527 100%);
+      color: #ffffff;
+    }
+    .maint-screen.open { display: flex; }
+    .maint-card {
+      width: 100%; max-width: 390px; padding: 28px 24px 22px; border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(14px); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+    }
+    .maint-ico {
+      width: 64px; height: 64px; border-radius: 18px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(29, 78, 216, 0.24));
+      border: 1px solid rgba(251, 191, 36, 0.42);
+      display: flex; align-items: center; justify-content: center; color: #fbbf24;
+    }
+    .maint-title { margin: 2px 0 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18.5px; font-weight: 800; color: #f8fafc; }
+    .maint-desc { margin: 0; font-size: 12.8px; line-height: 1.55; color: #cbd5e1; }
+    .maint-pill {
+      display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px;
+      background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(251, 191, 36, 0.35);
+      font-size: 11.5px; font-weight: 700; color: #fde68a;
+    }
+    .maint-btn {
+      width: 100%; min-height: 44px; margin-top: 4px; padding: 10px 16px; border-radius: 12px;
+      border: 1px solid rgba(147, 197, 253, 0.32);
+      background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #ffffff;
+      font-size: 13.5px; font-weight: 800; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 8px 20px rgba(29, 78, 216, 0.34);
+    }
+    .maint-foot { font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+
   </style>
 </head>
 <body>
@@ -177,6 +218,23 @@
       <h1 class="boot-title">Station Details Management</h1>
       <p class="boot-status">Syncing operations suite…</p>
       <div class="boot-progress"><div class="boot-progress-bar"></div></div>
+    </div>
+  </div>
+
+    <div id="maintScreen" class="maint-screen" role="alertdialog" aria-live="polite" aria-labelledby="maintTitle">
+    <div class="maint-card">
+      <div class="maint-ico" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      </div>
+      <div class="boot-kicker">Eastern Railway &bull; Section TI(M)/BDC</div>
+      <h2 id="maintTitle" class="maint-title">System Under Maintenance</h2>
+      <p id="maintDesc" class="maint-desc">SDM+ is temporarily unavailable while an update or deployment maintenance is in progress. Please try again in a few moments or contact your TI(M)/BDC administrator.</p>
+      <div class="maint-pill" id="maintPill">Deployment link unreachable or archived</div>
+      <button type="button" id="btnMaintRetry" class="maint-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Retry Connection
+      </button>
+      <div class="maint-foot">SDM+ v7.0 &bull; Created by Diptanu Roy</div>
     </div>
   </div>
 
@@ -210,6 +268,7 @@
 
       var rawCfg = window.__SDM_CFG__;
       try { delete window.__SDM_CFG__; } catch (e) { window.__SDM_CFG__ = null; }
+      var isMaintFlag = !!(rawCfg && rawCfg.maintenance === true);
       var execUrl = decodeEndpoint(rawCfg);
       rawCfg = null;
 
@@ -250,12 +309,64 @@
       frame.src = targetUrl;
       shadow.appendChild(frame);
 
-      function hideBootLoader() {
+      var appVerifiedAlive = false;
+      var maintScreen = document.getElementById("maintScreen");
+      var maintPill = document.getElementById("maintPill");
+      var maintTimer = null;
+
+      function markAppAlive() {
+        appVerifiedAlive = true;
+        if (maintTimer) { clearTimeout(maintTimer); maintTimer = null; }
+        if (maintScreen) maintScreen.classList.remove("open");
         frame.classList.add("is-ready");
         if (bootLoader) bootLoader.classList.add("hidden");
+        try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "SDM_APP_READY", version: "7.0" }, "*"); } catch (e) {}
       }
-      frame.addEventListener("load", function () { setTimeout(hideBootLoader, 160); });
-      setTimeout(hideBootLoader, 4500);
+
+      function showMaintenance(reasonTxt) {
+        if (appVerifiedAlive) return;
+        if (bootLoader) bootLoader.classList.add("hidden");
+        if (maintPill && reasonTxt) maintPill.textContent = reasonTxt;
+        if (maintScreen) maintScreen.classList.add("open");
+        try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "SDM_MAINTENANCE", reason: reasonTxt || "" }, "*"); } catch (e) {}
+      }
+
+      // If config.js explicitly sets maintenance: true, display maintenance screen immediately
+      if (isMaintFlag) {
+        showMaintenance("Scheduled maintenance in progress");
+      }
+
+      // When iframe loads, wait up to 5.5s for SDM+ app handshake (SDM_APP_READY / SDM_GET_TOKEN / SDM_GET_CREDS).
+      // If Google's "Sorry, unable to open the file at this time." page loaded instead, no handshake arrives -> show Maintenance!
+      frame.addEventListener("load", function () {
+        if (appVerifiedAlive) return;
+        if (maintTimer) clearTimeout(maintTimer);
+        maintTimer = setTimeout(function () {
+          if (!appVerifiedAlive) {
+            showMaintenance("Deployment link archived, invalid, or under maintenance");
+          }
+        }, 5500);
+      });
+      setTimeout(function () {
+        if (!appVerifiedAlive) {
+          showMaintenance("Service is taking too long or under maintenance");
+        }
+      }, 14000);
+
+      var btnMaintRetry = document.getElementById("btnMaintRetry");
+      if (btnMaintRetry) {
+        btnMaintRetry.addEventListener("click", function () {
+          if (maintScreen) maintScreen.classList.remove("open");
+          if (bootLoader) bootLoader.classList.remove("hidden");
+          appVerifiedAlive = false;
+          var sep = targetUrl.indexOf("?") === -1 ? "?" : "&";
+          frame.src = targetUrl + sep + "_retry=" + Date.now();
+          if (maintTimer) clearTimeout(maintTimer);
+          maintTimer = setTimeout(function () {
+            if (!appVerifiedAlive) showMaintenance("Still unavailable — please try again shortly");
+          }, 8000);
+        });
+      }
 
       function safeGet(k) {
         try { return sessionStorage.getItem(k) || localStorage.getItem(k) || ""; } catch (e) { return ""; }
@@ -270,6 +381,9 @@
       window.addEventListener("message", function (event) {
         var msg = event && event.data;
         if (!msg || typeof msg !== "object" || !msg.type) return;
+        if (msg.type === "SDM_APP_READY" || msg.type === "SDM_GET_TOKEN" || msg.type === "SDM_GET_CREDS" || msg.type === "SDM_SET_TOKEN") {
+          markAppAlive();
+        }
         if (msg.type === "SDM_SET_TOKEN") {
           safeSet(TOKEN_KEY, String(msg.token || ""));
         } else if (msg.type === "SDM_CLEAR_TOKEN" || msg.type === "SDM_LOGOUT") {
